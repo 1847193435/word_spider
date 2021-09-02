@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:bean="http://mybatis.org/schema/mybatis-spring"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://mybatis.org/schema/mybatis-spring
+       http://mybatis.org/schema/mybatis-spring.xsd
+       http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!--
+       读取 jdbc.properties 中的内容
+            property-placeholder: 占位符
+            location： 属性文件的位置
+    -->
+    <context:property-placeholder location="classpath:db.properties"/>
+
+    <!--
+        扫描包下的类注册到IOC容器中去
+    -->
+    <context:component-scan base-package="com.wang"/>
+
+    <!-- 1、 获得数据库连接池对象，并交由 spring 同一管理,在mybatis配置文件中就不需要再配置了 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+
+        <!-- 连接数据库的驱动，连接字符串，用户名和登录密码-->
+        <property name="driverClassName" value="${druid.driverClass}"/>
+        <property name="url" value="${druid.jdbcUrl}"/>
+        <property name="username" value="${druid.user}"/>
+        <property name="password" value="${druid.password}"/>
+
+        <!-- 数据池中最大连接数和最小连接数-->
+        <property name="maxActive" value="${druid.maxActive}"/>
+        <property name="minIdle" value="${druid.minIdle}"/>
+    </bean>
+
+    <!--2、获取 SqlSessionFactory 对象，并交由 spring 管理，取代了下面的代码-->
+    <!--
+        InputStream resourceAsStream = Test.class.getClassLoader().getResourceAsStream("mybatis-config.xml");
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(resourceAsStream);
+    -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 注入连接池
+         给 sqlsessionFactory 的属性 dataSource 赋值
+            ref="引用该 spring容器 中的另一个 bean的id"
+        -->
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 注入 映射文件 mapper
+         给 sqlsessionFactory 的属性 mapperLocation 赋值
+           value="映射文件 XXXmapper.xml 的相对路径"
+          -->
+        <property name="mapperLocations" value="classpath:com/wang/dao/xml/*.xml"/>
+        <property name="typeAliasesPackage" value="com.wang.entity"/>
+        <!--上面是完全spring取代mybatis-config配置文件，下面这行还可以加载mybatis-->
+        <!--property name="configLocation" value="classpath:mybatis-config.xml"/>-->
+    </bean>
+
+
+    <!-- 3、 获取 SqlSession 对象，并交由 spring 管理  用SqlSessionTemplate得到的SqlSession可以不用我们自己操心事务的管理，以及关闭操作-->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <!-- 给 SqlSessionTemplate 的构造函数赋值-->
+        <constructor-arg index="0" ref="sqlSessionFactory" />
+    </bean>
+
+</beans>
